@@ -94,7 +94,7 @@ function EmailDonut() {
 
 export default function EmailChartWidget() {
   const [filter, setFilter] = useState<keyof typeof filterMap>("Month");
-  const [chartMode, setChartMode] = useState<"area" | "line">("line");
+  const [chartMode, setChartMode] = useState<"area" | "line">("area");
   const data = useMemo(() => filterMap[filter], [filter]);
 
   return (
