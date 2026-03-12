@@ -4,6 +4,7 @@ import { DragDropContext, Draggable, Droppable, type DropResult } from "react-be
 import { ChevronDown, Globe, HardDrive, OctagonAlert, Upload, UserRound, Users2, UsersRound, Zap } from "lucide-react";
 import type { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
 import { DragHandle, SparkAreaChart, useWidgetDragHandle } from "./shared";
+import { applyStoredOrder, readStoredOrder, reorder, saveStoredOrder } from "@/lib/layout-storage";
 
 type StatCard = {
   id: string;
@@ -84,12 +85,7 @@ const storageUsed = storageSlices
   .filter((slice) => slice.label !== "Available Space")
   .reduce((sum, slice) => sum + slice.value, 0);
 
-function reorder<T>(list: T[], startIndex: number, endIndex: number) {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-  result.splice(endIndex, 0, removed);
-  return result;
-}
+const CLOUD_NETWORK_STORAGE_KEY = "snaarp:cloud-network-cards";
 
 function IconTile({ children }: { children: ReactNode }) {
   return (
@@ -297,12 +293,16 @@ function StoragePanel() {
 }
 
 export default function CloudNetworkWidget() {
-  const [cards, setCards] = useState(initialCards);
+  const [cards, setCards] = useState(() => applyStoredOrder(initialCards, readStoredOrder(CLOUD_NETWORK_STORAGE_KEY)));
   const widgetDragHandleProps = useWidgetDragHandle();
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    setCards((current) => reorder(current, result.source.index, result.destination!.index));
+    setCards((current) => {
+      const nextCards = reorder(current, result.source.index, result.destination.index);
+      saveStoredOrder(CLOUD_NETWORK_STORAGE_KEY, nextCards);
+      return nextCards;
+    });
   };
 
   return (

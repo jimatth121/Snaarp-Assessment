@@ -4,6 +4,7 @@ import { DragDropContext, Draggable, Droppable, type DropResult } from "react-be
 import type { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
 import { ChevronDown, Clock3, CalendarDays, UserRound, Globe, ChartNoAxesCombined } from "lucide-react";
 import { DragHandle, SectionHeader, SectionShell, SparkAreaChart, TrendBadge, UpgradeButton } from "./shared";
+import { applyStoredOrder, readStoredOrder, reorder, saveStoredOrder } from "@/lib/layout-storage";
 
 type ProductivityCard = {
   id: string;
@@ -100,12 +101,7 @@ const initialCards: ProductivityCard[] = [
   },
 ];
 
-function reorder<T>(list: T[], startIndex: number, endIndex: number) {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-  result.splice(endIndex, 0, removed);
-  return result;
-}
+const PRODUCTIVITY_STORAGE_KEY = "snaarp:productivity-cards";
 
 function MetricCard({
   card,
@@ -142,11 +138,15 @@ function MetricCard({
 }
 
 export default function ProductivityReportWidget() {
-  const [cards, setCards] = useState(initialCards);
+  const [cards, setCards] = useState(() => applyStoredOrder(initialCards, readStoredOrder(PRODUCTIVITY_STORAGE_KEY)));
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    setCards((current) => reorder(current, result.source.index, result.destination!.index));
+    setCards((current) => {
+      const nextCards = reorder(current, result.source.index, result.destination.index);
+      saveStoredOrder(PRODUCTIVITY_STORAGE_KEY, nextCards);
+      return nextCards;
+    });
   };
 
   return (

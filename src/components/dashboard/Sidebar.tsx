@@ -76,7 +76,7 @@ export default function Sidebar({
             <button
               key={item.label}
               title={collapsed ? item.label : undefined}
-              className={`flex w-full items-center rounded-[10px] py-[9px] text-left text-[9.5px] font-medium transition-colors ${
+              className={`flex w-full items-center rounded-[10px] py-[9px] text-left text-[11px] font-medium transition-colors ${
                 collapsed ? "justify-center px-0" : "gap-2.5 px-3"
               } ${
                 item.active
@@ -95,7 +95,7 @@ export default function Sidebar({
             <button
               key={item.label}
               title={collapsed ? item.label : undefined}
-              className={`flex w-full items-center rounded-[10px] py-[9px] text-left text-[9.5px] font-medium text-[#70757f] transition-colors hover:bg-[#f7f7f8] hover:text-[#2f3137] ${
+              className={`flex w-full items-center rounded-[10px] py-[9px] text-left text-[11px] font-medium text-[#70757f] transition-colors hover:bg-[#f7f7f8] hover:text-[#2f3137] ${
                 collapsed ? "justify-center px-0" : "gap-2.5 px-3"
               }`}
             >

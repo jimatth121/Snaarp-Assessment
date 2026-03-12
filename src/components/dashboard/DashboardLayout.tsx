@@ -12,6 +12,7 @@ import OnlineUsersWidget from "./widgets/OnlineUsersWidget";
 import AppActivityWidget from "./widgets/AppActivityWidget";
 import WebActivityWidget from "./widgets/WebActivityWidget";
 import { WidgetDragHandleProvider } from "./widgets/shared";
+import { applyStoredOrder, readStoredOrder, reorder, saveStoredOrder } from "@/lib/layout-storage";
 
 type WidgetConfig = {
   id: string;
@@ -31,21 +32,20 @@ const initialWidgets: WidgetConfig[] = [
   { id: "web-activity", component: WebActivityWidget, className: "col-span-full sm:col-span-1" },
 ];
 
-function reorder<T>(list: T[], startIndex: number, endIndex: number) {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-  result.splice(endIndex, 0, removed);
-  return result;
-}
+const DASHBOARD_LAYOUT_STORAGE_KEY = "snaarp:dashboard-layout";
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [widgets, setWidgets] = useState(initialWidgets);
+  const [widgets, setWidgets] = useState(() => applyStoredOrder(initialWidgets, readStoredOrder(DASHBOARD_LAYOUT_STORAGE_KEY)));
 
   const onDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) return;
-    setWidgets((current) => reorder(current, result.source.index, result.destination!.index));
+    setWidgets((current) => {
+      const nextWidgets = reorder(current, result.source.index, result.destination.index);
+      saveStoredOrder(DASHBOARD_LAYOUT_STORAGE_KEY, nextWidgets);
+      return nextWidgets;
+    });
   }, []);
 
   return (

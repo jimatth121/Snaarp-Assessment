@@ -3,26 +3,22 @@ import { DragDropContext, Draggable, Droppable, type DropResult } from "react-be
 import { Users } from "lucide-react";
 import { FilterButton, SectionHeader, SectionShell, SortHeader } from "./shared";
 import { ActivityBrandIcon, DeviceBrandIcon } from "./brandIcons";
+import { applyStoredOrder, readStoredOrder, reorder, saveStoredOrder } from "@/lib/layout-storage";
+
+const ONLINE_USERS_STORAGE_KEY = "snaarp:online-user-rows";
 
 const initialRows = [
-  ["Annette Black", "Ottawa, Canada", "MSBM, Ottawa", "Windows", "Google Chrome", "3 hours 12 minutes", true],
-  ["Floyd Miles", "Lagos, Nigeria", "MSBM, Lagos", "Windows", "Instagram", "2 hours 8 minutes", true],
-  ["Ronald Richards", "Dubai, UAE", "MSBM, Dubai", "Mac", "Microsoft Teams", "8 hours 45 minutes", true],
-  ["Guy Hawkins", "London, UK", "MSBM, London", "Windows", "Instagram", "1 hour 30 minutes", true],
-  ["Jane Cooper", "Frankfurt, Germany", "MSBM, Frankfurt", "Mac", "Google Chrome", "9 hours 10 minutes", true],
-  ["Leslie Alexander", "Rome, Italy", "MSBM, Rome", "Windows", "YouTube", "45 minutes", false],
-  ["Annette Black", "Calgary, Canada", "MSBM, Calgary", "Linux", "Opera Mini", "45 minutes", false],
-  ["Floyd Miles", "Mumbai, India", "MSBM, Mumbai", "Mac", "WhatsApp", "45 minutes", true],
-  ["Cody Fisher", "Lagos, Nigeria", "MSBM, Lagos", "Windows", "Microsoft Teams", "45 minutes", false],
-  ["Dianne Russell", "London, UK", "MSBM, London", "Linux", "YouTube", "45 minutes", true],
+  { id: "annette-ottawa", name: "Annette Black", location: "Ottawa, Canada", organization: "MSBM, Ottawa", device: "Windows", activity: "Google Chrome", timeUsage: "3 hours 12 minutes", isOnline: true },
+  { id: "floyd-lagos", name: "Floyd Miles", location: "Lagos, Nigeria", organization: "MSBM, Lagos", device: "Windows", activity: "Instagram", timeUsage: "2 hours 8 minutes", isOnline: true },
+  { id: "ronald-dubai", name: "Ronald Richards", location: "Dubai, UAE", organization: "MSBM, Dubai", device: "Mac", activity: "Microsoft Teams", timeUsage: "8 hours 45 minutes", isOnline: true },
+  { id: "guy-london", name: "Guy Hawkins", location: "London, UK", organization: "MSBM, London", device: "Windows", activity: "Instagram", timeUsage: "1 hour 30 minutes", isOnline: true },
+  { id: "jane-frankfurt", name: "Jane Cooper", location: "Frankfurt, Germany", organization: "MSBM, Frankfurt", device: "Mac", activity: "Google Chrome", timeUsage: "9 hours 10 minutes", isOnline: true },
+  { id: "leslie-rome", name: "Leslie Alexander", location: "Rome, Italy", organization: "MSBM, Rome", device: "Windows", activity: "YouTube", timeUsage: "45 minutes", isOnline: false },
+  { id: "annette-calgary", name: "Annette Black", location: "Calgary, Canada", organization: "MSBM, Calgary", device: "Linux", activity: "Opera Mini", timeUsage: "45 minutes", isOnline: false },
+  { id: "floyd-mumbai", name: "Floyd Miles", location: "Mumbai, India", organization: "MSBM, Mumbai", device: "Mac", activity: "WhatsApp", timeUsage: "45 minutes", isOnline: true },
+  { id: "cody-lagos", name: "Cody Fisher", location: "Lagos, Nigeria", organization: "MSBM, Lagos", device: "Windows", activity: "Microsoft Teams", timeUsage: "45 minutes", isOnline: false },
+  { id: "dianne-london", name: "Dianne Russell", location: "London, UK", organization: "MSBM, London", device: "Linux", activity: "YouTube", timeUsage: "45 minutes", isOnline: true },
 ] as const;
-
-function reorder<T>(list: T[], startIndex: number, endIndex: number) {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-  result.splice(endIndex, 0, removed);
-  return result;
-}
 
 function avatarTheme(name: string) {
   const themes = [
@@ -38,13 +34,17 @@ function avatarTheme(name: string) {
 }
 
 export default function OnlineUsersWidget() {
-  const [rows, setRows] = useState(Array.from(initialRows));
+  const [rows, setRows] = useState(() => applyStoredOrder(Array.from(initialRows), readStoredOrder(ONLINE_USERS_STORAGE_KEY)));
   const tableRef = useRef<HTMLTableElement | null>(null);
   const [organizationFilter, setOrganizationFilter] = useState("All Organization");
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    setRows((current) => reorder(current, result.source.index, result.destination!.index));
+    setRows((current) => {
+      const nextRows = reorder(current, result.source.index, result.destination.index);
+      saveStoredOrder(ONLINE_USERS_STORAGE_KEY, nextRows);
+      return nextRows;
+    });
   };
 
   const getDraggingRowStyle = (style: React.CSSProperties | undefined, isDragging: boolean) => {
@@ -105,7 +105,7 @@ export default function OnlineUsersWidget() {
               {(provided) => (
                 <tbody ref={provided.innerRef} {...provided.droppableProps}>
                   {rows.map((row, index) => (
-                    <Draggable key={`${row[0]}-${index}`} draggableId={`online-row-${index}`} index={index} disableInteractiveElementBlocking>
+                    <Draggable key={row.id} draggableId={row.id} index={index} disableInteractiveElementBlocking>
                       {(dragProvided, snapshot) => (
                         <tr
                           ref={dragProvided.innerRef}
@@ -115,31 +115,31 @@ export default function OnlineUsersWidget() {
                           style={getDraggingRowStyle(dragProvided.draggableProps.style, snapshot.isDragging)}
                         >
                           <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px] first:rounded-l-[10px]`}>
-                            <span className={`block h-[8px] w-[8px] rounded-full ${row[6] ? "bg-[#69bb2c]" : "bg-[#c8c8cc]"}`} />
+                            <span className={`block h-[8px] w-[8px] rounded-full ${row.isOnline ? "bg-[#69bb2c]" : "bg-[#c8c8cc]"}`} />
                           </td>
                           <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>
                             <div className="flex items-center gap-2">
-                              <div className={`flex h-7 w-7 items-center justify-center rounded-[7px] bg-gradient-to-br ${avatarTheme(row[0])} text-[8px] font-semibold text-white`}>
-                                {row[0].split(" ").map((part) => part[0]).join("")}
+                              <div className={`flex h-7 w-7 items-center justify-center rounded-[7px] bg-gradient-to-br ${avatarTheme(row.name)} text-[8px] font-semibold text-white`}>
+                                {row.name.split(" ").map((part) => part[0]).join("")}
                               </div>
-                              <span className="font-medium text-[#31343a]">{row[0]}</span>
+                              <span className="font-medium text-[#31343a]">{row.name}</span>
                             </div>
                           </td>
-                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>{row[1]}</td>
-                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>{row[2]}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>{row.location}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>{row.organization}</td>
                           <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>
                             <span className="inline-flex items-center gap-2">
-                              <DeviceBrandIcon device={row[3]} className="h-[18px] w-[18px]" iconClassName="h-[16px] w-[16px]" />
-                              {row[3]}
+                              <DeviceBrandIcon device={row.device} className="h-[18px] w-[18px]" iconClassName="h-[16px] w-[16px]" />
+                              {row.device}
                             </span>
                           </td>
                           <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>
                             <span className="inline-flex items-center gap-2">
-                              <ActivityBrandIcon activity={row[4]} className="h-[18px] w-[18px]" iconClassName="h-[16px] w-[16px]" />
-                              {row[4]}
+                              <ActivityBrandIcon activity={row.activity} className="h-[18px] w-[18px]" iconClassName="h-[16px] w-[16px]" />
+                              {row.activity}
                             </span>
                           </td>
-                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} rounded-r-[10px] px-3 py-[10px]`}>{row[5]}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} rounded-r-[10px] px-3 py-[10px]`}>{row.timeUsage}</td>
                         </tr>
                       )}
                     </Draggable>

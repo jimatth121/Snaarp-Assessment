@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { DeviceBrandIcon } from "./brandIcons";
 import { DragHandle, SectionHeader, SectionShell, SparkAreaChart, TrendBadge, UpgradeButton } from "./shared";
+import { applyStoredOrder, readStoredOrder, reorder, saveStoredOrder } from "@/lib/layout-storage";
 
 type CoreCard = {
   id: string;
@@ -181,12 +182,8 @@ const initialSideCards: SideCard[] = [
   },
 ];
 
-function reorder<T>(list: T[], startIndex: number, endIndex: number) {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-  result.splice(endIndex, 0, removed);
-  return result;
-}
+const DEVICE_CORE_STORAGE_KEY = "snaarp:device-core-cards";
+const DEVICE_SIDE_STORAGE_KEY = "snaarp:device-side-cards";
 
 function DeviceCard({
   card,
@@ -300,17 +297,25 @@ function SimpleMetricCard({
 }
 
 export default function DeviceManagementWidget() {
-  const [coreCards, setCoreCards] = useState(initialCoreCards);
-  const [sideCards, setSideCards] = useState(initialSideCards);
+  const [coreCards, setCoreCards] = useState(() => applyStoredOrder(initialCoreCards, readStoredOrder(DEVICE_CORE_STORAGE_KEY)));
+  const [sideCards, setSideCards] = useState(() => applyStoredOrder(initialSideCards, readStoredOrder(DEVICE_SIDE_STORAGE_KEY)));
 
   const onDragEndCore = (result: DropResult) => {
     if (!result.destination) return;
-    setCoreCards((current) => reorder(current, result.source.index, result.destination!.index));
+    setCoreCards((current) => {
+      const nextCards = reorder(current, result.source.index, result.destination.index);
+      saveStoredOrder(DEVICE_CORE_STORAGE_KEY, nextCards);
+      return nextCards;
+    });
   };
 
   const onDragEndSide = (result: DropResult) => {
     if (!result.destination) return;
-    setSideCards((current) => reorder(current, result.source.index, result.destination!.index));
+    setSideCards((current) => {
+      const nextCards = reorder(current, result.source.index, result.destination.index);
+      saveStoredOrder(DEVICE_SIDE_STORAGE_KEY, nextCards);
+      return nextCards;
+    });
   };
 
   return (

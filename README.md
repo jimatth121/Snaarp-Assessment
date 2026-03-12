@@ -26,6 +26,7 @@ The project includes draggable dashboard sections, analytics widgets, interactiv
 ## Features
 
 - Reorderable dashboard widgets
+- Persisted drag-and-drop layout using `localStorage`
 - Device management and productivity cards
 - Email and file activity charts
 - Storage usage donut chart
@@ -103,6 +104,7 @@ yarn preview
 ## UI Notes
 
 - Drag-and-drop is implemented with `react-beautiful-dnd`
+- Drag order is stored in `localStorage`, so dashboard and widget card positions persist after page refresh
 - Notifications use `sonner`
 - Shared widget helpers live in `src/components/dashboard/widgets/shared.tsx`
 - Tailwind utility classes drive most of the layout and styling
@@ -111,6 +113,7 @@ yarn preview
 
 - The app uses `BrowserRouter` for routing
 - Widget layouts are composed from reusable dashboard sections
+- Layout persistence helpers live in `src/lib/layout-storage.ts`
 - Several widgets include custom SVG icon treatments and responsive sizing adjustments
 
 ## License

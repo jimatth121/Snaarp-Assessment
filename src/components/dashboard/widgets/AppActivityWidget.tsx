@@ -3,32 +3,32 @@ import { DragDropContext, Draggable, Droppable, type DropResult } from "react-be
 import { AppWindow } from "lucide-react";
 import { FilterButton, SectionHeader, SectionShell, SortHeader } from "./shared";
 import { AppBrandIcon } from "./brandIcons";
+import { applyStoredOrder, readStoredOrder, reorder, saveStoredOrder } from "@/lib/layout-storage";
+
+const APP_ACTIVITY_STORAGE_KEY = "snaarp:app-activity-rows";
 
 const initialApps = [
-  ["Google Chrome", 34, "3 hours 12 minutes", "2024-06-26 15:33:49"],
-  ["YouTube", 12, "2 hours 8 minutes", "2024-05-26 12:45:41"],
-  ["Microsoft Teams", 16, "6 hours 45 minutes", "2024-05-21 16:28:21"],
-  ["WhatsApp", 49, "1 hour 30 minutes", "2024-06-26 15:33:49"],
-  ["Opera Mini", 3, "9 hours 10 minutes", "2024-05-21 16:28:21"],
-  ["Instagram", 22, "45 minutes", "2024-05-26 12:45:41"],
+  { id: "chrome", name: "Google Chrome", totalUsers: 34, totalHours: "3 hours 12 minutes", date: "2024-06-26 15:33:49" },
+  { id: "youtube", name: "YouTube", totalUsers: 12, totalHours: "2 hours 8 minutes", date: "2024-05-26 12:45:41" },
+  { id: "teams", name: "Microsoft Teams", totalUsers: 16, totalHours: "6 hours 45 minutes", date: "2024-05-21 16:28:21" },
+  { id: "whatsapp", name: "WhatsApp", totalUsers: 49, totalHours: "1 hour 30 minutes", date: "2024-06-26 15:33:49" },
+  { id: "opera-mini", name: "Opera Mini", totalUsers: 3, totalHours: "9 hours 10 minutes", date: "2024-05-21 16:28:21" },
+  { id: "instagram", name: "Instagram", totalUsers: 22, totalHours: "45 minutes", date: "2024-05-26 12:45:41" },
 ] as const;
 
-function reorder<T>(list: T[], startIndex: number, endIndex: number) {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-  result.splice(endIndex, 0, removed);
-  return result;
-}
-
 export default function AppActivityWidget() {
-  const [apps, setApps] = useState(Array.from(initialApps));
+  const [apps, setApps] = useState(() => applyStoredOrder(Array.from(initialApps), readStoredOrder(APP_ACTIVITY_STORAGE_KEY)));
   const tableRef = useRef<HTMLTableElement | null>(null);
   const [organizationFilter, setOrganizationFilter] = useState("All Organization");
   const [periodFilter, setPeriodFilter] = useState("Month");
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    setApps((current) => reorder(current, result.source.index, result.destination!.index));
+    setApps((current) => {
+      const nextApps = reorder(current, result.source.index, result.destination.index);
+      saveStoredOrder(APP_ACTIVITY_STORAGE_KEY, nextApps);
+      return nextApps;
+    });
   };
 
   const getDraggingRowStyle = (style: React.CSSProperties | undefined, isDragging: boolean) => {
@@ -92,7 +92,7 @@ export default function AppActivityWidget() {
               {(provided) => (
                 <tbody ref={provided.innerRef} {...provided.droppableProps}>
                   {apps.map((app, index) => (
-                    <Draggable key={`${app[0]}-${index}`} draggableId={`app-row-${index}`} index={index} disableInteractiveElementBlocking>
+                    <Draggable key={app.id} draggableId={app.id} index={index} disableInteractiveElementBlocking>
                       {(dragProvided, snapshot) => (
                         <tr
                           ref={dragProvided.innerRef}
@@ -103,13 +103,13 @@ export default function AppActivityWidget() {
                         >
                           <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} rounded-l-[10px] px-3 py-[10px]`}>
                             <span className="inline-flex max-w-full items-center gap-2 truncate font-medium text-[#31343a]">
-                              <AppBrandIcon name={app[0]} className="h-[18px] w-[18px]" iconClassName="h-[16px] w-[16px]" />
-                              <span className="truncate">{app[0]}</span>
+                              <AppBrandIcon name={app.name} className="h-[18px] w-[18px]" iconClassName="h-[16px] w-[16px]" />
+                              <span className="truncate">{app.name}</span>
                             </span>
                           </td>
-                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>{app[1]}</td>
-                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px] truncate`}>{app[2]}</td>
-                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} rounded-r-[10px] px-3 py-[10px] truncate`}>{app[3]}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>{app.totalUsers}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px] truncate`}>{app.totalHours}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} rounded-r-[10px] px-3 py-[10px] truncate`}>{app.date}</td>
                         </tr>
                       )}
                     </Draggable>
