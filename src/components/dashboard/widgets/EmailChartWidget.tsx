@@ -1,144 +1,184 @@
-import { useState } from "react";
-import { Mail, BarChart2, LineChart as LineChartIcon } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { useMemo, useState } from "react";
+import { BarChart3, LineChart, Mail } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { DashboardTooltip, Dot, FilterButton, SectionHeader, SectionShell } from "./shared";
 
-const allData = [
-  { month: "JAN", Sent: 500, Received: 300, Unsent: 100 },
-  { month: "FEB", Sent: 800, Received: 500, Unsent: 200 },
-  { month: "MAR", Sent: 1200, Received: 800, Unsent: 150 },
-  { month: "APR", Sent: 1500, Received: 1000, Unsent: 300 },
-  { month: "MAY", Sent: 2000, Received: 1200, Unsent: 250 },
-  { month: "JUN", Sent: 3000, Received: 2000, Unsent: 400 },
-  { month: "JUL", Sent: 5000, Received: 3500, Unsent: 800 },
-  { month: "AUG", Sent: 4500, Received: 3000, Unsent: 600 },
-  { month: "SEP", Sent: 3500, Received: 2500, Unsent: 400 },
-  { month: "OCT", Sent: 3000, Received: 2000, Unsent: 300 },
-  { month: "NOV", Sent: 2500, Received: 1800, Unsent: 200 },
-  { month: "DEC", Sent: 2000, Received: 1500, Unsent: 150 },
+const donutData = [
+  { name: "Sent", value: 40, color: "#f7a300" },
+  { name: "Received", value: 42, color: "#626ef6" },
+  { name: "Unsent", value: 18, color: "#e2e2e6" },
 ];
 
-const timeFilters = ["Month", "Week", "Day"];
+const monthlyData = [
+  { month: "JAN", Sent: 420, Received: 312, Unsent: 110, Total: 842 },
+  { month: "FEB", Sent: 680, Received: 438, Unsent: 120, Total: 1238 },
+  { month: "MAR", Sent: 540, Received: 310, Unsent: 95, Total: 945 },
+  { month: "APR", Sent: 920, Received: 584, Unsent: 140, Total: 1644 },
+  { month: "MAY", Sent: 1320, Received: 838, Unsent: 162, Total: 2320 },
+  { month: "JUN", Sent: 863, Received: 932, Unsent: 52, Total: 1847 },
+  { month: "JUL", Sent: 1747, Received: 1390, Unsent: 120, Total: 3257 },
+  { month: "AUG", Sent: 2880, Received: 1840, Unsent: 175, Total: 4895 },
+  { month: "SEP", Sent: 3320, Received: 2055, Unsent: 180, Total: 5555 },
+  { month: "OCT", Sent: 3560, Received: 2190, Unsent: 155, Total: 5905 },
+  { month: "NOV", Sent: 3410, Received: 2140, Unsent: 180, Total: 5730 },
+  { month: "DEC", Sent: 3680, Received: 2215, Unsent: 165, Total: 6060 },
+];
 
-// Donut chart with proper segments
+const weekData = [
+  { month: "W1", Sent: 690, Received: 510, Unsent: 48, Total: 1248 },
+  { month: "W2", Sent: 742, Received: 561, Unsent: 44, Total: 1347 },
+  { month: "W3", Sent: 703, Received: 534, Unsent: 40, Total: 1277 },
+  { month: "W4", Sent: 811, Received: 603, Unsent: 55, Total: 1469 },
+];
+
+const dayData = [
+  { month: "Mon", Sent: 94, Received: 70, Unsent: 8, Total: 172 },
+  { month: "Tue", Sent: 116, Received: 88, Unsent: 10, Total: 214 },
+  { month: "Wed", Sent: 102, Received: 79, Unsent: 6, Total: 187 },
+  { month: "Thu", Sent: 128, Received: 92, Unsent: 9, Total: 229 },
+  { month: "Fri", Sent: 141, Received: 104, Unsent: 11, Total: 256 },
+  { month: "Sat", Sent: 119, Received: 83, Unsent: 7, Total: 209 },
+  { month: "Sun", Sent: 111, Received: 80, Unsent: 8, Total: 199 },
+];
+
+const filterMap = {
+  Month: monthlyData,
+  Week: weekData,
+  Day: dayData,
+} as const;
+
 function EmailDonut() {
-  const segments = [
-    { pct: 45, color: "hsl(var(--chart-orange))" },  // Sent
-    { pct: 35, color: "hsl(var(--chart-blue))" },     // Received
-    { pct: 20, color: "hsl(var(--chart-green))" },     // Unsent
-  ];
-  const r = 38;
-  const circumference = 2 * Math.PI * r;
-  let cumulative = 0;
+  const [activeIndex, setActiveIndex] = useState(1);
 
   return (
-    <div className="relative w-32 h-32">
-      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-        {segments.map((seg, i) => {
-          const dashLength = (seg.pct / 100) * circumference;
-          const dashOffset = -(cumulative / 100) * circumference;
-          cumulative += seg.pct;
-          return (
-            <circle
-              key={i}
-              cx="50"
-              cy="50"
-              r={r}
-              fill="none"
-              stroke={seg.color}
-              strokeWidth="10"
-              strokeDasharray={`${dashLength} ${circumference - dashLength}`}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="round"
-            />
-          );
-        })}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[10px] text-muted-foreground">Emails</span>
-        <span className="text-xs font-bold text-foreground">Chart</span>
+    <div className="relative h-[248px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Tooltip content={<DashboardTooltip formatter={(value) => `${value}%`} />} />
+          <Pie
+            data={donutData}
+            dataKey="value"
+            nameKey="name"
+            innerRadius={64}
+            outerRadius={88}
+            activeIndex={activeIndex}
+            onMouseEnter={(_, index) => setActiveIndex(index)}
+            paddingAngle={0}
+            strokeWidth={0}
+          >
+            {donutData.map((entry, index) => (
+              <Cell key={entry.name} fill={entry.color} opacity={activeIndex === index ? 1 : 0.92} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <div className="text-[13px] leading-none text-[#4c5059]">Emails</div>
+        <div className="mt-1 text-[13px] font-semibold text-[#31343a]">Chart</div>
       </div>
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[94px] w-[94px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[6px] border-dashed border-[#5468ff]" />
     </div>
   );
 }
 
 export default function EmailChartWidget() {
-  const [timeFilter, setTimeFilter] = useState("Month");
-  const [chartToggle, setChartToggle] = useState<"area" | "bar">("area");
-
-  const data = timeFilter === "Week" ? allData.slice(0, 4) : timeFilter === "Day" ? allData.slice(0, 7) : allData;
+  const [filter, setFilter] = useState<keyof typeof filterMap>("Month");
+  const [chartMode, setChartMode] = useState<"area" | "line">("line");
+  const data = useMemo(() => filterMap[filter], [filter]);
 
   return (
-    <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-      <div className="flex items-center gap-2 mb-4">
-        <Mail size={18} className="text-primary" />
-        <h2 className="font-semibold text-foreground">Email Chart</h2>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Donut */}
-        <div className="flex flex-col items-center justify-center">
+    <SectionShell className="">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(255px,312px)_minmax(0,1fr)]">
+        <div className="rounded-[10px] border border-[#efeff1] bg-white p-4">
+          <SectionHeader icon={<Mail size={13} />} title="Email Chart" />
           <EmailDonut />
-          <div className="flex gap-3 mt-3">
-            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-chart-orange" /><span className="text-[10px] text-muted-foreground">Sent</span></div>
-            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-chart-blue" /><span className="text-[10px] text-muted-foreground">Received</span></div>
-            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-chart-green" /><span className="text-[10px] text-muted-foreground">Unsent</span></div>
+
+          <div className="mt-2 flex items-center justify-center gap-6 text-[10.5px] text-[#50555f]">
+            {donutData.map((item) => (
+              <div key={item.name} className="flex items-center gap-2">
+                <Dot color={item.color} square />
+                <span>{item.name}</span>
+              </div>
+            ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">TOTAL EMAILS SENT</p>
-          <p className="text-lg font-bold text-foreground">5,421</p>
+
+          <div className="mt-7 text-center">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.02em] text-[#50555f]">Total Emails Sent</div>
+            <div className="text-[30px] font-semibold tracking-[-0.03em] text-[#2f3137]">5,421</div>
+          </div>
         </div>
 
-        {/* Area chart */}
-        <div className="md:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-foreground">Total Email</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setChartToggle("area")}
-                className={`p-1.5 rounded ${chartToggle === "area" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                <BarChart2 size={14} />
-              </button>
-              <button
-                onClick={() => setChartToggle("bar")}
-                className={`p-1.5 rounded ${chartToggle === "bar" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                <LineChartIcon size={14} />
-              </button>
-              <select
-                value={timeFilter}
-                onChange={(e) => setTimeFilter(e.target.value)}
-                className="text-xs bg-secondary rounded-lg px-3 py-1.5 text-muted-foreground border-none outline-none"
-              >
-                {timeFilters.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="h-52">
+        <div className="rounded-[10px] border border-[#efeff1] bg-white p-3">
+          <SectionHeader
+            icon={<Mail size={13} />}
+            title="Total Email"
+            actions={
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setChartMode("area")}
+                  className={`flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#e8e8eb] ${
+                    chartMode === "area" ? "bg-[#edf2ff] text-[#5468ff]" : "bg-white text-[#7e838f]"
+                  }`}
+                >
+                  <BarChart3 size={14} />
+                </button>
+                <button
+                  onClick={() => setChartMode("line")}
+                  className={`flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#e8e8eb] ${
+                    chartMode === "line" ? "bg-[#edf2ff] text-[#5468ff]" : "bg-white text-[#7e838f]"
+                  }`}
+                >
+                  <LineChart size={14} />
+                </button>
+                <FilterButton
+                  label={filter}
+                  value={filter}
+                  options={["Month", "Week", "Day"]}
+                  onChange={(value) => setFilter(value as keyof typeof filterMap)}
+                  className="w-[84px]"
+                />
+              </div>
+            }
+          />
+
+          <div className="mt-4 h-[248px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
+              <AreaChart data={data} margin={{ top: 8, right: 6, left: -18, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="sentGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--chart-orange))" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="hsl(var(--chart-orange))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="recvGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--chart-blue))" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="hsl(var(--chart-blue))" stopOpacity={0} />
+                  <linearGradient id="totalEmailFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#5468ff" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="#5468ff" stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
-                <Area type="monotone" dataKey="Sent" stroke="hsl(var(--chart-orange))" fill="url(#sentGrad)" strokeWidth={2} />
-                <Area type="monotone" dataKey="Received" stroke="hsl(var(--chart-blue))" fill="url(#recvGrad)" strokeWidth={2} />
-                <Area type="monotone" dataKey="Unsent" stroke="hsl(var(--chart-green))" fill="transparent" strokeWidth={2} />
+                <CartesianGrid vertical={false} stroke="#ececf0" />
+                <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#777c88" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: "#9ca1ab" }} axisLine={false} tickLine={false} />
+                <Tooltip content={<DashboardTooltip formatter={(value) => `${value} emails`} />} />
+                <Area
+                  type="monotone"
+                  dataKey="Total"
+                  name="Total"
+                  stroke="#5468ff"
+                  strokeWidth={2}
+                  fill={chartMode === "area" ? "url(#totalEmailFill)" : "transparent"}
+                  activeDot={{ r: 4, fill: "#fff", stroke: "#5468ff", strokeWidth: 2 }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
-    </div>
+    </SectionShell>
   );
 }

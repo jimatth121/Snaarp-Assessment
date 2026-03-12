@@ -1,210 +1,363 @@
-import { useState } from "react";
-import { Cloud, Users, Layers, Upload, Building2, TrendingDown, TrendingUp, type LucideIcon } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+// @ts-nocheck
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { DragDropContext, Draggable, Droppable, type DropResult } from "react-beautiful-dnd";
+import { ChevronDown, Globe, HardDrive, OctagonAlert, Upload, UserRound, Users2, UsersRound, Zap } from "lucide-react";
+import type { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
+import { DragHandle, SparkAreaChart, useWidgetDragHandle } from "./shared";
 
-const sparkData = {
-  Users: [30, 45, 35, 60, 40, 55, 35, 50, 40, 60, 45, 55],
-  Groups: [20, 35, 50, 40, 60, 45, 55, 70, 50, 65, 55, 70],
-  Uploads: [40, 55, 45, 60, 50, 65, 55, 70, 45, 60, 50, 65],
-  Departments: [25, 40, 30, 50, 35, 45, 30, 55, 40, 50, 35, 45],
-};
-
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const w = 80;
-  const h = 28;
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * h}`).join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="ml-auto">
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-interface StatItem {
+type StatCard = {
   id: string;
   label: string;
   value: string;
   change: number;
-  icon: LucideIcon;
-}
+  icon: ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  tone: "positive" | "negative";
+  points: number[];
+};
 
-const initialStats: StatItem[] = [
-  { id: "users", label: "Users", value: "3,836", change: -15, icon: Users },
-  { id: "groups", label: "Groups", value: "316", change: 23, icon: Layers },
-  { id: "uploads", label: "Uploads", value: "316", change: 23, icon: Upload },
-  { id: "departments", label: "Departments", value: "316", change: -23, icon: Building2 },
+type StorageSlice = {
+  label: string;
+  color: string;
+  value: number;
+};
+
+type StorageTooltip = {
+  x: number;
+  y: number;
+  label: string;
+  value: number;
+  color: string;
+};
+
+const initialCards: StatCard[] = [
+  {
+    id: "users",
+    label: "Users",
+    value: "3,836",
+    change: -15,
+    icon: UserRound,
+    tone: "negative",
+    points: [88, 84, 79, 78, 78, 76, 62, 53, 35],
+  },
+  {
+    id: "groups",
+    label: "Groups",
+    value: "316",
+    change: 23,
+    icon: Users2,
+    tone: "positive",
+    points: [28, 46, 62, 83, 100, 101, 101, 110, 116],
+  },
+  {
+    id: "uploads",
+    label: "Uploads",
+    value: "316",
+    change: 23,
+    icon: Upload,
+    tone: "positive",
+    points: [20, 40, 56, 72, 95, 96, 97, 108, 116],
+  },
+  {
+    id: "departments",
+    label: "Departments",
+    value: "316",
+    change: -23,
+    icon: UsersRound,
+    tone: "negative",
+    points: [82, 78, 73, 72, 71, 69, 51, 39, 20],
+  },
 ];
 
-const storageItems = [
-  { label: "Files", color: "hsl(var(--chart-blue))" },
-  { label: "Folders", color: "hsl(var(--chart-green))" },
-  { label: "Videos", color: "hsl(var(--chart-red))" },
-  { label: "Apps", color: "hsl(var(--chart-yellow))" },
-  { label: "Audios", color: "hsl(var(--chart-purple))" },
-  { label: "Miscellaneous", color: "hsl(var(--chart-cyan))" },
+const storageSlices: StorageSlice[] = [
+  { label: "Files", color: "#A335D6", value: 15 },
+  { label: "Folders", color: "#F3B000", value: 15 },
+  { label: "Videos", color: "#8CC004", value: 18 },
+  { label: "Apps", color: "#4AA8EE", value: 14 },
+  { label: "Audios", color: "#FF4B55", value: 8 },
+  { label: "Miscellaneous", color: "#5568F3", value: 10 },
+  { label: "Available Space", color: "#D8D8DB", value: 20 },
 ];
 
-// Pie chart segments (percentages)
-const pieSegments = [
-  { pct: 25, color: "hsl(var(--chart-blue))" },
-  { pct: 18, color: "hsl(var(--chart-green))" },
-  { pct: 15, color: "hsl(var(--chart-red))" },
-  { pct: 12, color: "hsl(var(--chart-yellow))" },
-  { pct: 10, color: "hsl(var(--chart-purple))" },
-  { pct: 10, color: "hsl(var(--chart-cyan))" },
-  { pct: 10, color: "hsl(var(--border))" }, // available
-];
+const donutSliceOrder = ["Apps", "Available Space", "Files", "Miscellaneous", "Videos", "Folders", "Audios"];
 
-function StoragePieChart() {
-  const total = pieSegments.reduce((s, seg) => s + seg.pct, 0);
-  const r = 42;
-  const cx = 50;
-  const cy = 50;
-  const circumference = 2 * Math.PI * r;
-  let cumulative = 0;
+const storageUsed = storageSlices
+  .filter((slice) => slice.label !== "Available Space")
+  .reduce((sum, slice) => sum + slice.value, 0);
 
-  return (
-    <div className="relative w-28 h-28 mx-auto">
-      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-        {pieSegments.map((seg, i) => {
-          const dashLength = (seg.pct / total) * circumference;
-          const dashOffset = -(cumulative / total) * circumference;
-          cumulative += seg.pct;
-          return (
-            <circle
-              key={i}
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill="none"
-              stroke={seg.color}
-              strokeWidth="14"
-              strokeDasharray={`${dashLength} ${circumference - dashLength}`}
-              strokeDashoffset={dashOffset}
-            />
-          );
-        })}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-bold text-foreground">80%</span>
-        <span className="text-[10px] text-muted-foreground">Used</span>
-      </div>
-    </div>
-  );
-}
-
-function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
+function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
   return result;
 }
 
+function IconTile({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] bg-[#F4F4F4] text-[#4E4E4F]">
+      {children}
+    </span>
+  );
+}
+
+function toSparkChartData(points: number[]) {
+  return points.map((value, index) => ({ label: `${index + 1}`, value }));
+}
+
+function polarToCartesian(cx: number, cy: number, radius: number, angleInDegrees: number) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(angleInRadians),
+    y: cy + radius * Math.sin(angleInRadians),
+  };
+}
+
+function describeArc(cx: number, cy: number, radius: number, startAngle: number, endAngle: number) {
+  const start = polarToCartesian(cx, cy, radius, endAngle);
+  const end = polarToCartesian(cx, cy, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+}
+
+function StatCardView({
+  card,
+  dragHandleProps,
+}: {
+  card: StatCard;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
+}) {
+  const positive = card.change > 0;
+  const changeColor = positive ? "#64B52B" : "#FF5A57";
+  const chartData = toSparkChartData(card.points);
+  const stroke = card.tone === "positive" ? "#56B60F" : "#FF5252";
+  const fill = card.tone === "positive" ? "#93D84D" : "#FF938B";
+
+  return (
+    <article className="h-full rounded-[14px] border border-[#ECECED] bg-white px-[14px] py-[18px]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-[12px]">
+          <IconTile>
+            <card.icon size={17} strokeWidth={1.85} />
+          </IconTile>
+          <span className="text-[17px] font-medium tracking-[-0.03em] text-[#454545]">{card.label}</span>
+        </div>
+        <DragHandle dragHandleProps={dragHandleProps} className="drag-handle-child" />
+      </div>
+
+      <div className="mt-[26px] grid grid-cols-[minmax(0,1fr)_120px] items-end gap-x-[12px] xl:grid-cols-[minmax(0,1fr)_150px]">
+        <div className="self-end">
+          <div className="flex items-center gap-[10px] leading-none">
+            <span className="text-[18px] font-semibold tracking-[-0.05em] text-[#3F3F40]">{card.value}</span>
+            <span className="inline-flex items-center gap-[5px] text-[12px] font-medium leading-none" style={{ color: changeColor }}>
+              <span className="text-[16px] leading-none">{positive ? "\u2191" : "\u2193"}</span>
+              {Math.abs(card.change)}%
+            </span>
+          </div>
+          <p className="mt-[28px] text-[11px] leading-none text-[#535457]">Compared to last week</p>
+        </div>
+
+        <div className="flex items-end justify-end">
+          <SparkAreaChart
+            className="h-[56px] w-[120px] xl:h-[72px] xl:w-[150px]"
+            data={chartData}
+            dataKey="value"
+            stroke={stroke}
+            fill={fill}
+          />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function StorageDonut() {
+  const [tooltip, setTooltip] = useState<StorageTooltip | null>(null);
+
+  const segments = useMemo(() => {
+    const orderedSlices = donutSliceOrder
+      .map((label) => storageSlices.find((slice) => slice.label === label))
+      .filter((slice): slice is StorageSlice => Boolean(slice));
+    let currentAngle = -36;
+
+    return orderedSlices.map((slice) => {
+      const sweep = (slice.value / 100) * 360;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + sweep;
+      currentAngle = endAngle;
+      const tooltipPoint = polarToCartesian(120, 120, 104, startAngle + sweep / 2);
+
+      return {
+        ...slice,
+        path: describeArc(120, 120, 84, startAngle, endAngle),
+        tooltipX: tooltipPoint.x,
+        tooltipY: tooltipPoint.y,
+      };
+    });
+  }, []);
+
+  return (
+    <div className="relative h-[204px] w-[204px] shrink-0">
+      <svg viewBox="0 0 240 240" className="h-full w-full overflow-visible">
+        {segments.map((segment) => (
+          <path
+            key={segment.label}
+            d={segment.path}
+            fill="none"
+            stroke={segment.color}
+            strokeWidth="24"
+            strokeLinecap="butt"
+            className="cursor-pointer transition-opacity duration-150 hover:opacity-90"
+            onMouseEnter={() => setTooltip({ x: segment.tooltipX, y: segment.tooltipY, label: segment.label, value: segment.value, color: segment.color })}
+            onMouseLeave={() => setTooltip(null)}
+          />
+        ))}
+        <circle cx="120" cy="120" r="58" fill="#FBFBFB" />
+        <circle cx="120" cy="120" r="57" fill="none" stroke="#586AF5" strokeWidth="6" strokeDasharray="6 7" />
+      </svg>
+
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className="text-[17px] font-semibold leading-none text-[#3E3E3F]">80%</span>
+        <span className="mt-[5px] text-[16px] leading-[1.02] text-[#4A4A4B]">Used</span>
+      </div>
+
+      {tooltip ? (
+        <div
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-[10px] border border-[#E9E9EE] bg-white px-[10px] py-[8px] text-[11px] shadow-[0_10px_24px_rgba(15,23,42,0.12)]"
+          style={{ left: (tooltip.x / 240) * 204, top: (tooltip.y / 240) * 204 - 8 }}
+        >
+          <div className="flex items-center gap-[8px] whitespace-nowrap">
+            <span className="h-[10px] w-[10px] rounded-[3px]" style={{ backgroundColor: tooltip.color }} />
+            <span className="font-medium text-[#3F3F44]">{tooltip.label}</span>
+            <span className="font-semibold text-[#2F3137]">{tooltip.value}%</span>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function StoragePanel() {
+  return (
+    <article className="h-full min-w-0 rounded-[14px] border border-[#ECECED] bg-white px-[14px] py-[18px]">
+      <div className="grid h-full min-w-0 grid-cols-[188px_minmax(0,1fr)] gap-x-0">
+        <div>
+          <div className="flex items-center gap-[12px]">
+            <IconTile>
+              <HardDrive size={17} strokeWidth={1.85} />
+            </IconTile>
+            <span className="text-[17px] font-medium tracking-[-0.03em] text-[#454545]">Storage</span>
+          </div>
+
+          <div className="mt-[6px] flex justify-start -ml-[18px] pl-0">
+            <StorageDonut />
+          </div>
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-col pt-[15px]">
+          <div className="relative rounded-[14px] bg-white px-[14px] py-[11px] shadow-[0_8px_24px_rgba(31,41,55,0.08)]">
+            <span className="absolute inset-y-0 left-[1px] w-[7px] rounded-l-[18px] bg-[#F2B100]" />
+            <span className="absolute inset-y-0 right-[1px] w-[7px] rounded-r-[18px] bg-[#F2B100]" />
+            <span className="absolute inset-y-0 left-[3px] w-[6px] rounded-l-[14px] bg-white" />
+            <span className="absolute inset-y-0 right-[3px] w-[6px] rounded-r-[14px] bg-white" />
+            <div className="relative flex items-start gap-[11px]">
+              <span className="mt-[1px] flex h-[18px] w-[18px] items-center justify-center rounded-[6px] bg-[#F7B502] text-white">
+                <OctagonAlert size={11} strokeWidth={2.6} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[14px] font-semibold text-[#7B2BE2]">Note</div>
+                <p className="mt-[2px] text-[12px] leading-[1.5] text-[#505057]">
+                  You&apos;ve almost reached your limit
+                  <br />
+                  You have used {storageUsed}% of your available storage. Upgrade
+                  <br />
+                  plan to access more space.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-[24px] grid grid-cols-3 gap-x-[28px] gap-y-[18px]">
+            {storageSlices.map((slice) => (
+              <div key={slice.label} className="flex min-w-0 items-center gap-[10px] text-[12px] font-medium text-[#3F3F44]">
+                <span className="h-[15px] w-[15px] shrink-0 rounded-[3px]" style={{ backgroundColor: slice.color }} />
+                <span className="whitespace-nowrap">{slice.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-auto flex justify-end pr-[4px] pt-[24px]">
+            <button className="inline-flex h-[44px] items-center gap-[10px] rounded-[11px] border border-[#5A6CFF] bg-[#FBFBFF] px-[20px] text-[14px] font-medium text-[#5A6CFF]">
+              <Zap size={16} />
+              <span>Upgrade Plan</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function CloudNetworkWidget() {
-  const [stats, setStats] = useState(initialStats);
+  const [cards, setCards] = useState(initialCards);
+  const widgetDragHandleProps = useWidgetDragHandle();
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    setStats((prev) => reorder(prev, result.source.index, result.destination!.index));
+    setCards((current) => reorder(current, result.source.index, result.destination!.index));
   };
 
   return (
-    <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-      <div className="flex items-center gap-2 mb-4">
-        <Cloud size={18} className="text-primary" />
-        <h2 className="font-semibold text-foreground">Cloud Network</h2>
+    <section className="space-y-[10px]">
+      <div className="rounded-[14px] border border-[#ECECED] bg-white px-[20px] py-[13px]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-[12px]">
+            <IconTile>
+              <Globe size={18} strokeWidth={1.9} />
+            </IconTile>
+            <h2 className="text-[20px] font-semibold tracking-[-0.04em] text-[#3F3F40]">Cloud Network</h2>
+          </div>
+
+          <button className="text-[#4B4B4E]">
+            <ChevronDown size={20} strokeWidth={1.8} />
+          </button>
+        </div>
+        <div>
+          <DragHandle dragHandleProps={widgetDragHandleProps} className="drag-handle-parent" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stats grid - draggable */}
+      <div className="grid grid-cols-1 gap-[10px] sm:grid-cols-[minmax(0,1.2fr)_minmax(340px,1.2fr)] xl:grid-cols-2 sm:items-stretch">
         <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="cloud-stats">
-            {(provided) => (
+          <Droppable droppableId="cloud-network-cards">
+            {(dropProvided) => (
               <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="md:col-span-2 grid grid-cols-2 gap-3"
+                ref={dropProvided.innerRef}
+                {...dropProvided.droppableProps}
+                className="grid gap-[10px] sm:h-full sm:grid-cols-2 sm:grid-rows-[minmax(160px,184px)_minmax(160px,184px)]"
               >
-                {stats.map((stat, index) => (
-                  <Draggable key={stat.id} draggableId={stat.id} index={index}>
-                    {(provided, snapshot) => (
+                {cards.map((card, index) => (
+                  <Draggable key={card.id} draggableId={card.id} index={index} disableInteractiveElementBlocking>
+                    {(dragProvided, snapshot) => (
                       <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`bg-secondary/50 rounded-lg p-4 cursor-grab active:cursor-grabbing transition-all ${
-                          snapshot.isDragging ? "shadow-lg opacity-90 scale-[1.02]" : "hover:shadow-sm hover:ring-1 hover:ring-primary/10"
-                        }`}
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        className={`drag-surface drag-child h-full ${snapshot.isDragging ? "drag-surface-dragging" : ""}`}
+                        style={dragProvided.draggableProps.style}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <stat.icon size={14} className="text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{stat.label}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                            <div className="flex items-center gap-1 mt-1">
-                              {stat.change > 0 ? (
-                                <TrendingUp size={12} className="text-success" />
-                              ) : (
-                                <TrendingDown size={12} className="text-destructive" />
-                              )}
-                              <span className={`text-xs font-medium ${stat.change > 0 ? "text-success" : "text-destructive"}`}>
-                                {Math.abs(stat.change)}%
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">Compared to last week</p>
-                          </div>
-                          <Sparkline
-                            data={sparkData[stat.label as keyof typeof sparkData]}
-                            color={stat.change > 0 ? "hsl(var(--success))" : "hsl(var(--destructive))"}
-                          />
-                        </div>
+                        <StatCardView card={card} dragHandleProps={dragProvided.dragHandleProps} />
                       </div>
                     )}
                   </Draggable>
                 ))}
-                {provided.placeholder}
+                {dropProvided.placeholder}
               </div>
             )}
           </Droppable>
         </DragDropContext>
 
-        {/* Storage */}
-        <div className="bg-secondary/50 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="text-sm font-semibold text-foreground">Storage</h3>
-          </div>
-          {/* Note banner */}
-          <div className="bg-success/10 border border-success/20 rounded-lg p-3 mb-3">
-            <p className="text-xs font-semibold text-success">Note</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
-              You've almost reached your limit. You have used 80% of your available storage. Upgrade plan to access more space.
-            </p>
-          </div>
-          {/* Pie chart */}
-          <StoragePieChart />
-          {/* Legend */}
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3">
-            {storageItems.map((item) => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-[10px] text-muted-foreground">{item.label}</span>
-              </div>
-            ))}
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-border" />
-              <span className="text-[10px] text-muted-foreground">Available Space</span>
-            </div>
-          </div>
-          <button className="mt-3 w-full py-2 text-xs font-medium border border-border rounded-lg text-foreground hover:bg-secondary transition-colors">
-            ✦ Upgrade Plan
-          </button>
+        <div className="sm:h-full">
+          <StoragePanel />
         </div>
       </div>
-    </div>
+    </section>
   );
 }

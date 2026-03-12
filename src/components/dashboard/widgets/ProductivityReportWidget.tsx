@@ -1,110 +1,184 @@
+// @ts-nocheck
 import { useState } from "react";
-import { TrendingUp, TrendingDown, Clock, CalendarDays, Users, Globe, type LucideIcon } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { DragDropContext, Draggable, Droppable, type DropResult } from "react-beautiful-dnd";
+import type { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
+import { ChevronDown, Clock3, CalendarDays, UserRound, Globe, ChartNoAxesCombined } from "lucide-react";
+import { DragHandle, SectionHeader, SectionShell, SparkAreaChart, TrendBadge, UpgradeButton } from "./shared";
 
-const sparkData: Record<string, number[]> = {
-  "Hours Productivity": [40, 55, 35, 50, 45, 30, 50, 40, 35, 45, 30, 40],
-  "Days Activity": [20, 35, 45, 55, 40, 60, 50, 65, 55, 60, 50, 65],
-  "Users": [50, 45, 60, 40, 55, 35, 50, 45, 40, 35, 45, 40],
-  "Web Activity": [30, 40, 35, 45, 30, 40, 35, 25, 35, 30, 25, 30],
-};
-
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const w = 70;
-  const h = 24;
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * h}`).join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="ml-auto">
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-interface Metric {
+type ProductivityCard = {
   id: string;
-  icon: LucideIcon;
   title: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   value: string;
   unit: string;
   change: number;
-}
+  points: Array<{ label: string; value: number }>;
+  stroke: string;
+  fill: string;
+};
 
-const initialMetrics: Metric[] = [
-  { id: "hours", icon: Clock, title: "Hours Productivity", value: "576", unit: "Hrs", change: -15 },
-  { id: "days", icon: CalendarDays, title: "Days Activity", value: "267", unit: "Days", change: 15 },
-  { id: "users", icon: Users, title: "Users", value: "3,836", unit: "", change: -15 },
-  { id: "web", icon: Globe, title: "Web Activity", value: "178", unit: "Activities", change: -15 },
+const initialCards: ProductivityCard[] = [
+  {
+    id: "hours",
+    title: "Hours Productivity",
+    icon: Clock3,
+    value: "576",
+    unit: "Hrs",
+    change: -15,
+    points: [
+      { label: "Jan", value: 84 },
+      { label: "Feb", value: 78 },
+      { label: "Mar", value: 72 },
+      { label: "Apr", value: 71 },
+      { label: "May", value: 70 },
+      { label: "Jun", value: 61 },
+      { label: "Jul", value: 50 },
+      { label: "Aug", value: 35 },
+    ],
+    stroke: "#ff5b56",
+    fill: "#ff988b",
+  },
+  {
+    id: "days",
+    title: "Days Activity",
+    icon: CalendarDays,
+    value: "267",
+    unit: "Days",
+    change: 15,
+    points: [
+      { label: "Jan", value: 28 },
+      { label: "Feb", value: 43 },
+      { label: "Mar", value: 54 },
+      { label: "Apr", value: 67 },
+      { label: "May", value: 71 },
+      { label: "Jun", value: 72 },
+      { label: "Jul", value: 73 },
+      { label: "Aug", value: 81 },
+    ],
+    stroke: "#73c63a",
+    fill: "#b8eb87",
+  },
+  {
+    id: "users",
+    title: "Users",
+    icon: UserRound,
+    value: "3,836",
+    unit: "",
+    change: -15,
+    points: [
+      { label: "Jan", value: 84 },
+      { label: "Feb", value: 78 },
+      { label: "Mar", value: 72 },
+      { label: "Apr", value: 71 },
+      { label: "May", value: 70 },
+      { label: "Jun", value: 61 },
+      { label: "Jul", value: 50 },
+      { label: "Aug", value: 35 },
+    ],
+    stroke: "#ff5b56",
+    fill: "#ff988b",
+  },
+  {
+    id: "web",
+    title: "Web Activity",
+    icon: Globe,
+    value: "178",
+    unit: "Activities",
+    change: 15,
+    points: [
+      { label: "Jan", value: 28 },
+      { label: "Feb", value: 43 },
+      { label: "Mar", value: 54 },
+      { label: "Apr", value: 67 },
+      { label: "May", value: 71 },
+      { label: "Jun", value: 72 },
+      { label: "Jul", value: 73 },
+      { label: "Aug", value: 81 },
+    ],
+    stroke: "#73c63a",
+    fill: "#b8eb87",
+  },
 ];
 
-function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
+function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
   return result;
 }
 
+function MetricCard({
+  card,
+  dragHandleProps,
+}: {
+  card: ProductivityCard;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
+}) {
+  return (
+    <div className="rounded-[12px] border border-[#efeff1] bg-white p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 text-[11px] text-[#4b4f58]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#f4f4f5] text-[#5d616c]">
+            <card.icon size={15} />
+          </span>
+          <span>{card.title}</span>
+        </div>
+        <DragHandle dragHandleProps={dragHandleProps} className="drag-handle-child" />
+      </div>
+
+      <div className="mt-6 flex items-end justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[24px] font-semibold tracking-[-0.03em] text-[#3a3d44]">{card.value}</span>
+            {card.unit ? <span className="text-[11px] text-[#8a8f99]">{card.unit}</span> : null}
+            <TrendBadge change={card.change} />
+          </div>
+          <p className="mt-7 text-[10px] text-[#6e737d]">Compared to last week</p>
+        </div>
+        <SparkAreaChart className="h-[72px] w-[150px]" data={card.points} dataKey="value" stroke={card.stroke} fill={card.fill} />
+      </div>
+    </div>
+  );
+}
+
 export default function ProductivityReportWidget() {
-  const [metrics, setMetrics] = useState(initialMetrics);
+  const [cards, setCards] = useState(initialCards);
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    setMetrics((prev) => reorder(prev, result.source.index, result.destination!.index));
+    setCards((current) => reorder(current, result.source.index, result.destination!.index));
   };
 
   return (
-    <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <TrendingUp size={18} className="text-primary" />
-          <h2 className="font-semibold text-foreground">Productivity Report</h2>
+    <SectionShell className="">
+      <div className="flex items-center justify-between border-b bg-white pt-4 rounded-2xl border-[#efeff1] px-2 pb-3">
+        <SectionHeader icon={<ChartNoAxesCombined size={13} />} title="Productivity Report" />
+        <div className="flex items-center gap-3">
+          <UpgradeButton />
+          <button className="text-[#8c9099]">
+            <ChevronDown size={16} />
+          </button>
         </div>
-        <button className="text-xs font-medium bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-          ✦ Upgrade Plan
-        </button>
       </div>
+
       <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="productivity-metrics" direction="horizontal">
+        <Droppable droppableId="productivity-cards" direction="horizontal">
           {(provided) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="grid grid-cols-2 md:grid-cols-4 gap-3"
+              className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4"
             >
-              {metrics.map((m, index) => (
-                <Draggable key={m.id} draggableId={m.id} index={index}>
-                  {(provided, snapshot) => (
+              {cards.map((card, index) => (
+                <Draggable key={card.id} draggableId={card.id} index={index} disableInteractiveElementBlocking>
+                  {(dragProvided, snapshot) => (
                     <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={`bg-secondary/50 rounded-lg p-4 cursor-grab active:cursor-grabbing transition-all ${
-                        snapshot.isDragging ? "shadow-lg opacity-90 scale-[1.02]" : "hover:shadow-sm hover:ring-1 hover:ring-primary/10"
-                      }`}
+                      ref={dragProvided.innerRef}
+                      {...dragProvided.draggableProps}
+                      className={`drag-surface drag-child ${snapshot.isDragging ? "drag-surface-dragging" : ""}`}
+                      style={dragProvided.draggableProps.style}
                     >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <m.icon size={14} className="text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{m.title}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-xl font-bold text-foreground">{m.value}</span>
-                            <span className="text-xs text-muted-foreground">{m.unit}</span>
-                            <span className={`text-xs font-medium flex items-center gap-0.5 ${m.change > 0 ? "text-success" : "text-destructive"}`}>
-                              {m.change > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                              {Math.abs(m.change)}%
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mt-1">Compared to last week</p>
-                        </div>
-                        <Sparkline
-                          data={sparkData[m.title]}
-                          color={m.change > 0 ? "hsl(var(--success))" : "hsl(var(--destructive))"}
-                        />
-                      </div>
+                      <MetricCard card={card} dragHandleProps={dragProvided.dragHandleProps} />
                     </div>
                   )}
                 </Draggable>
@@ -114,6 +188,6 @@ export default function ProductivityReportWidget() {
           )}
         </Droppable>
       </DragDropContext>
-    </div>
+    </SectionShell>
   );
 }

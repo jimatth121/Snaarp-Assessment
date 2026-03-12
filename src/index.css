@@ -104,19 +104,124 @@
   * {
     @apply border-border;
   }
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
   body {
     @apply bg-background text-foreground font-sans;
+    margin: 0;
   }
 }
 
 @layer utilities {
+  @media (min-width: 640px) and (max-width: 1400px) {
+    .dashboard-shell {
+      overflow-x: clip;
+    }
+    .dashboard-canvas {
+      zoom: 0.88;
+      width: 100%;
+    }
+  }
+
+  @media (min-width: 640px) and (max-width: 1180px) {
+    .dashboard-canvas {
+      zoom: 0.8;
+      width: 100%;
+    }
+  }
+
+  .drag-surface {
+    position: relative;
+    border-radius: 14px;
+    transition: box-shadow 180ms ease, transform 180ms ease, opacity 180ms ease;
+  }
+  .drag-parent:has(.drag-child:hover),
+  .drag-parent:has(.drag-child.drag-surface-dragging),
+  .drag-parent:has(.drag-row:hover),
+  .drag-parent:has(.drag-row.drag-row-dragging) {
+    box-shadow: none;
+  }
+  .drag-surface-dragging {
+    z-index: 20;
+    box-shadow:
+      0 18px 36px rgba(15, 23, 42, 0.14),
+      0 0 18px rgba(84, 104, 255, 0.14);
+  }
   .drag-handle {
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-2px);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+  .drag-handle-child {
+    left: auto;
+    right: 12px;
+    transform: translateY(-2px);
+  }
+  .drag-parent:hover .drag-handle-parent,
+  .drag-parent.drag-surface-dragging .drag-handle-parent,
+  .drag-child:hover .drag-handle-child,
+  .drag-child.drag-surface-dragging .drag-handle-child {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+  .drag-child:hover .drag-handle-child,
+  .drag-child.drag-surface-dragging .drag-handle-child {
+    transform: translateY(0);
+  }
+  .drag-parent:has(.drag-child:hover) .drag-handle-parent,
+  .drag-parent:has(.drag-child.drag-surface-dragging) .drag-handle-parent,
+  .drag-parent:has(.drag-row:hover) .drag-handle-parent,
+  .drag-parent:has(.drag-row.drag-row-dragging) .drag-handle-parent {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-2px);
+  }
+  .drag-handle:hover {
     cursor: grab;
+    box-shadow:
+      0 0 0 1px rgba(84, 104, 255, 0.12),
+      0 8px 18px rgba(84, 104, 255, 0.14);
   }
   .drag-handle:active {
     cursor: grabbing;
   }
-  .widget-dragging {
-    @apply shadow-2xl opacity-90 rotate-1;
+  .drag-handle:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+    outline: 2px solid rgba(84, 104, 255, 0.45);
+    outline-offset: 2px;
+  }
+  .drag-handle-child:focus-visible {
+    transform: translateY(0);
+  }
+  .drag-row {
+    cursor: grab;
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+  .drag-row:active {
+    cursor: grabbing;
+  }
+  .drag-row:hover td {
+    box-shadow: none;
+  }
+  .drag-row-dragging {
+    opacity: 0.96;
+  }
+  .drag-row-dragging td {
+    box-shadow: none;
   }
 }

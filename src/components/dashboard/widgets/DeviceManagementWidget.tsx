@@ -1,179 +1,349 @@
+// @ts-nocheck
 import { useState } from "react";
-import { Monitor, TrendingUp, TrendingDown } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { DragDropContext, Draggable, Droppable, type DropResult } from "react-beautiful-dnd";
+import type { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ChevronDown,
+  LaptopMinimal,
+  Mail,
+  MonitorSmartphone,
+  Power,
+  ScanLine,
+  SquareUserRound,
+  Building2,
+  UsersRound,
+  AppWindow,
+  Download,
+  Monitor,
+  Apple,
+  Laptop,
+  MailOpen,
+  MailX,
+} from "lucide-react";
+import { DeviceBrandIcon } from "./brandIcons";
+import { DragHandle, SectionHeader, SectionShell, SparkAreaChart, TrendBadge, UpgradeButton } from "./shared";
 
-const sparkData: Record<string, number[]> = {
-  "Number Of Devices": [30, 50, 40, 60, 45, 55, 50, 65, 55, 60, 50, 60],
-  "Users": [45, 35, 50, 40, 55, 45, 35, 50, 40, 45, 35, 40],
-  "Emails": [50, 40, 35, 30, 25, 35, 30, 25, 20, 25, 20, 25],
-};
-
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const w = 70;
-  const h = 24;
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * h}`).join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-interface CardData {
+type CoreCard = {
   id: string;
   title: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   value: string;
   change: number;
-  subs: { label: string; value: string; icon: string }[];
-  platforms: { label: string; value: string }[];
-}
+  points: Array<{ label: string; value: number }>;
+  stroke: string;
+  fill: string;
+  stats: { label: string; value: string; icon: React.ComponentType<{ size?: number; className?: string }> }[];
+  footer: {
+    label: string;
+    value: string;
+    icon?: React.ComponentType<{ size?: number; className?: string }>;
+    iconType?: "device";
+  }[];
+};
 
-const initialCards: CardData[] = [
+type SideCard = {
+  id: string;
+  title: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  value: string;
+  change: number;
+  points: Array<{ label: string; value: number }>;
+  stroke: string;
+  fill: string;
+};
+
+const initialCoreCards: CoreCard[] = [
   {
     id: "devices",
     title: "Number Of Devices",
+    icon: MonitorSmartphone ,
     value: "3,836",
-    change: 11,
-    subs: [
-      { label: "Plugged", value: "1,923", icon: "🔌" },
-      { label: "Unplugged", value: "1,913", icon: "🔋" },
+    change: 15,
+    points: [
+      { label: "Jan", value: 24 },
+      { label: "Feb", value: 39 },
+      { label: "Mar", value: 52 },
+      { label: "Apr", value: 67 },
+      { label: "May", value: 72 },
+      { label: "Jun", value: 72 },
+      { label: "Jul", value: 79 },
+      { label: "Aug", value: 86 },
     ],
-    platforms: [
-      { label: "Windows", value: "1,403 devices" },
-      { label: "Mac", value: "632 devices" },
-      { label: "Linux", value: "1,801 devices" },
+    stroke: "#73c63a",
+    fill: "#b8eb87",
+    stats: [
+      { label: "Plugged", value: "1,923", icon: ScanLine },
+      { label: "Unplugged", value: "1,913", icon: ScanLine },
+    ],
+    footer: [
+      { label: "Windows", value: "1,403 devices", iconType: "device" },
+      { label: "Mac", value: "632 devices", iconType: "device" },
+      { label: "Linux", value: "1,801 devices", iconType: "device" },
     ],
   },
   {
     id: "users",
     title: "Users",
+    icon: SquareUserRound,
     value: "3,836",
     change: -15,
-    subs: [
-      { label: "Active", value: "592", icon: "🟢" },
-      { label: "Offline", value: "3,836", icon: "⚫" },
+    points: [
+      { label: "Jan", value: 88 },
+      { label: "Feb", value: 80 },
+      { label: "Mar", value: 73 },
+      { label: "Apr", value: 70 },
+      { label: "May", value: 70 },
+      { label: "Jun", value: 63 },
+      { label: "Jul", value: 51 },
+      { label: "Aug", value: 37 },
     ],
-    platforms: [
-      { label: "Organizations", value: "1,403 users" },
-      { label: "Departments", value: "632 users" },
-      { label: "Groups", value: "1,801 users" },
+    stroke: "#ff5b56",
+    fill: "#ff988b",
+    stats: [
+      { label: "Active", value: "592", icon: Power },
+      { label: "Offline", value: "3,836", icon: Power },
+    ],
+    footer: [
+      { label: "Organizations", value: "1,403 users", icon: Building2 },
+      { label: "Departments", value: "632 users", icon: UsersRound },
+      { label: "Groups", value: "1,801 users", icon: UsersRound },
     ],
   },
   {
     id: "emails",
     title: "Emails",
+    icon: Mail,
     value: "316",
     change: -23,
-    subs: [
-      { label: "Sent", value: "592", icon: "📤" },
-      { label: "Received", value: "3,836", icon: "📥" },
+    points: [
+      { label: "Jan", value: 86 },
+      { label: "Feb", value: 80 },
+      { label: "Mar", value: 74 },
+      { label: "Apr", value: 73 },
+      { label: "May", value: 72 },
+      { label: "Jun", value: 63 },
+      { label: "Jul", value: 51 },
+      { label: "Aug", value: 37 },
     ],
-    platforms: [
-      { label: "Read", value: "1,403 emails" },
-      { label: "Unread", value: "632 emails" },
+    stroke: "#ff5b56",
+    fill: "#ff988b",
+    stats: [
+      { label: "Sent", value: "592", icon: ArrowUpRight },
+      { label: "Received", value: "3,836", icon: ArrowDownLeft },
+    ],
+    footer: [
+      { label: "Read", value: "1,403 emails", icon: MailOpen },
+      { label: "Unread", value: "632 emails", icon: MailX },
     ],
   },
 ];
 
-interface RightCard {
-  id: string;
-  title: string;
-  value: string;
-  change: number;
-}
-
-const initialRightCards: RightCard[] = [
-  { id: "apps", title: "Number of Apps", value: "316", change: -23 },
-  { id: "downloads", title: "Number of Downloads", value: "316", change: 23 },
+const initialSideCards: SideCard[] = [
+  {
+    id: "apps",
+    title: "Number of Apps",
+    icon: AppWindow,
+    value: "316",
+    change: -23,
+    points: [
+      { label: "Jan", value: 82 },
+      { label: "Feb", value: 76 },
+      { label: "Mar", value: 68 },
+      { label: "Apr", value: 66 },
+      { label: "May", value: 65 },
+      { label: "Jun", value: 50 },
+      { label: "Jul", value: 43 },
+      { label: "Aug", value: 27 },
+    ],
+    stroke: "#ff5b56",
+    fill: "#ff988b",
+  },
+  {
+    id: "downloads",
+    title: "Number of Downloads",
+    icon: Download,
+    value: "316",
+    change: 23,
+    points: [
+      { label: "Jan", value: 22 },
+      { label: "Feb", value: 38 },
+      { label: "Mar", value: 51 },
+      { label: "Apr", value: 63 },
+      { label: "May", value: 76 },
+      { label: "Jun", value: 77 },
+      { label: "Jul", value: 78 },
+      { label: "Aug", value: 84 },
+    ],
+    stroke: "#73c63a",
+    fill: "#b8eb87",
+  },
 ];
 
-function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
+function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
   return result;
 }
 
-export default function DeviceManagementWidget() {
-  const [cards, setCards] = useState(initialCards);
-  const [rightCards, setRightCards] = useState(initialRightCards);
+function DeviceCard({
+  card,
+  dragHandleProps,
+}: {
+  card: CoreCard;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
+}) {
+  return (
+    <div className="flex h-full flex-col gap-3 bg-transparent">
+      <div className="flex-1 rounded-[16px] border border-[#ececee] bg-white px-4 pb-5 pt-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3  text-[12px] font-medium text-[#404247]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#f1f1f2] text-[#595d66]">
+                <card.icon size={15} />
+              </span>
+              <span className="text-[14px]">{card.title}</span>
+            </div>
+          </div>
+          <DragHandle dragHandleProps={dragHandleProps} className="drag-handle-child" />
+        </div>
 
-  const onDragEndCards = (result: DropResult) => {
+        <div className="mt-6 flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[18px] font-semibold tracking-[-0.04em] text-[#3c3d41]">{card.value}</span>
+              <TrendBadge change={card.change} />
+            </div>
+            <p className="mt-3 text-[12px] text-[#575b63]">Compared to last week</p>
+          </div>
+          <div className="shrink-0">
+            <SparkAreaChart className="h-[54px] w-[122px]" data={card.points} dataKey="value" stroke={card.stroke} fill={card.fill} />
+          </div>
+        </div>
+
+        <div className="mt-5 border-t border-[#ececef] pt-5">
+          <div className="grid grid-cols-2 gap-5">
+            {card.stats.map((item, index) => (
+              <div key={item.label}>
+                <div className="flex items-center gap-3 text-[12px] text-[#474b53]">
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-[8px] ${
+                      index === 0 ? "bg-[#eef6e3] text-[#76bc35]" : "bg-[#fff0f0] text-[#ff5a5a]"
+                    }`}
+                  >
+                    <item.icon size={15} />
+                  </span>
+                  <span>{item.label}</span>
+                </div>
+                <div className="mt-4 text-[17px] font-semibold tracking-[-0.04em] text-[#3a3d44]">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={`grid min-h-[78px] w-full rounded-[14px] border border-[#ececee] bg-white  py-1.5 text-[9px] text-[#555963] shadow-[0_1px_2px_rgba(15,23,42,0.02)] ${
+          card.footer.length === 2 ? "grid-cols-2" : "grid-cols-3"
+        }`}
+      >
+        {card.footer.map((item) => (
+          <div key={item.label} className="flex flex-col justify-center border-r border-[#e5e6e8] px-1  py-1.5 first:pl-2 last:border-r-0 last:pr-2">
+            <div className="flex items-center gap-1.5 text-[8px] leading-tight text-[#4a4d55]">
+              {item.iconType === "device" ? <DeviceBrandIcon device={item.label} className="h-[14px] w-[14px]" iconClassName="h-[14px] w-[14px]" /> : null}
+              {item.icon ? <item.icon size={12} /> : null}
+              <span className="truncate">{item.label}</span>
+            </div>
+            <div className="mt-2 text-[11px] font-semibold leading-tight text-[#3a3d44]">{item.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SimpleMetricCard({
+  card,
+  dragHandleProps,
+}: {
+  card: SideCard;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
+}) {
+  return (
+    <div className="rounded-[16px] border border-[#ececee] bg-[#fcfcfd] px-4 pb-6 pt-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 text-[14px] font-medium text-[#404247]">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#f1f1f2] text-[#595d66]">
+            <card.icon size={15} />
+          </span>
+          <span>{card.title}</span>
+        </div>
+        <DragHandle dragHandleProps={dragHandleProps} className="drag-handle-child" />
+      </div>
+
+      <div className="mt-8 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[18px] font-semibold tracking-[-0.04em] text-[#3a3d44]">{card.value}</span>
+            <TrendBadge change={card.change} />
+          </div>
+          <p className="mt-4 text-[12px] text-[#575b63]">Compared to last week</p>
+        </div>
+        <div className="shrink-0">
+          <SparkAreaChart className="h-[76px] w-[164px]" data={card.points} dataKey="value" stroke={card.stroke} fill={card.fill} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function DeviceManagementWidget() {
+  const [coreCards, setCoreCards] = useState(initialCoreCards);
+  const [sideCards, setSideCards] = useState(initialSideCards);
+
+  const onDragEndCore = (result: DropResult) => {
     if (!result.destination) return;
-    setCards((prev) => reorder(prev, result.source.index, result.destination!.index));
+    setCoreCards((current) => reorder(current, result.source.index, result.destination!.index));
   };
 
-  const onDragEndRight = (result: DropResult) => {
+  const onDragEndSide = (result: DropResult) => {
     if (!result.destination) return;
-    setRightCards((prev) => reorder(prev, result.source.index, result.destination!.index));
+    setSideCards((current) => reorder(current, result.source.index, result.destination!.index));
   };
 
   return (
-    <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Monitor size={18} className="text-primary" />
-          <h2 className="font-semibold text-foreground">Device Management Dashboard</h2>
+    <SectionShell className=" ">
+      <div className="flex items-center justify-between rounded-[16px] bg-white   px-4 py-3">
+        <SectionHeader icon={<LaptopMinimal size={15} />} title="Device Management Dashboard" className="w-full" />
+        <div className="flex shrink-0 items-center gap-3">
+          <UpgradeButton />
+          <button className="text-[#565a62]">
+            <ChevronDown size={16} />
+          </button>
         </div>
-        <button className="text-xs font-medium bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-          ✦ Upgrade Plan
-        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <DragDropContext onDragEnd={onDragEndCards}>
-          <Droppable droppableId="device-cards" direction="horizontal">
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
+        <DragDropContext onDragEnd={onDragEndCore}>
+          <Droppable droppableId="device-core" direction="horizontal">
             {(provided) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3"
+                className="grid grid-cols-1 gap-3 md:grid-cols-3 md:items-stretch"
               >
-                {cards.map((card, index) => (
-                  <Draggable key={card.id} draggableId={card.id} index={index}>
-                    {(provided, snapshot) => (
+                {coreCards.map((card, index) => (
+                  <Draggable key={card.id} draggableId={card.id} index={index} disableInteractiveElementBlocking>
+                    {(dragProvided, snapshot) => (
                       <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`bg-secondary/50 rounded-lg p-4 space-y-3 cursor-grab active:cursor-grabbing transition-all ${
-                          snapshot.isDragging ? "shadow-lg opacity-90 scale-[1.02]" : "hover:shadow-sm hover:ring-1 hover:ring-primary/10"
-                        }`}
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        className={`drag-surface drag-child bg-transparent ${snapshot.isDragging ? "drag-surface-dragging" : ""}`}
+                        style={dragProvided.draggableProps.style}
                       >
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">{card.title}</p>
-                          <Sparkline
-                            data={sparkData[card.title]}
-                            color={card.change > 0 ? "hsl(var(--success))" : "hsl(var(--destructive))"}
-                          />
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-bold text-foreground">{card.value}</span>
-                          <span className={`text-xs font-medium flex items-center gap-0.5 ${card.change > 0 ? "text-success" : "text-destructive"}`}>
-                            {card.change > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                            {Math.abs(card.change)}%
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">Compared to last week</p>
-                        <div className="flex gap-4">
-                          {card.subs.map((s) => (
-                            <div key={s.label}>
-                              <p className="text-[10px] text-muted-foreground">{s.icon} {s.label}</p>
-                              <p className="text-sm font-semibold text-foreground">{s.value}</p>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
-                          {card.platforms.map((p) => (
-                            <div key={p.label} className="text-[10px] text-muted-foreground">
-                              <span className="font-medium text-foreground">{p.label}</span>{" "}
-                              {p.value}
-                            </div>
-                          ))}
-                        </div>
+                        <DeviceCard card={card} dragHandleProps={dragProvided.dragHandleProps} />
                       </div>
                     )}
                   </Draggable>
@@ -184,30 +354,20 @@ export default function DeviceManagementWidget() {
           </Droppable>
         </DragDropContext>
 
-        <DragDropContext onDragEnd={onDragEndRight}>
-          <Droppable droppableId="device-right-cards">
+        <DragDropContext onDragEnd={onDragEndSide}>
+          <Droppable droppableId="device-side">
             {(provided) => (
               <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
-                {rightCards.map((rc, index) => (
-                  <Draggable key={rc.id} draggableId={rc.id} index={index}>
-                    {(provided, snapshot) => (
+                {sideCards.map((card, index) => (
+                  <Draggable key={card.id} draggableId={card.id} index={index} disableInteractiveElementBlocking>
+                    {(dragProvided, snapshot) => (
                       <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`bg-secondary/50 rounded-lg p-4 cursor-grab active:cursor-grabbing transition-all ${
-                          snapshot.isDragging ? "shadow-lg opacity-90 scale-[1.02]" : "hover:shadow-sm hover:ring-1 hover:ring-primary/10"
-                        }`}
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        className={`drag-surface drag-child bg-transparent ${snapshot.isDragging ? "drag-surface-dragging" : ""}`}
+                        style={dragProvided.draggableProps.style}
                       >
-                        <p className="text-xs text-muted-foreground">{rc.title}</p>
-                        <div className="flex items-baseline gap-2 mt-1">
-                          <span className="text-2xl font-bold text-foreground">{rc.value}</span>
-                          <span className={`text-xs font-medium flex items-center gap-0.5 ${rc.change > 0 ? "text-success" : "text-destructive"}`}>
-                            {rc.change > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                            {Math.abs(rc.change)}%
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Compared to last week</p>
+                        <SimpleMetricCard card={card} dragHandleProps={dragProvided.dragHandleProps} />
                       </div>
                     )}
                   </Draggable>
@@ -218,6 +378,6 @@ export default function DeviceManagementWidget() {
           </Droppable>
         </DragDropContext>
       </div>
-    </div>
+    </SectionShell>
   );
 }

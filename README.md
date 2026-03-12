@@ -1,73 +1,118 @@
-# Welcome to your Lovable project
+# Snaarp Dashboard
 
-## Project info
+A responsive admin dashboard built with React, TypeScript, and Vite.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+The project includes draggable dashboard sections, analytics widgets, interactive charts, toast notifications, and a component setup based on Tailwind CSS and shadcn/ui primitives.
 
-## How can I edit this code?
+## Stack
 
-There are several ways of editing your application.
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- Radix UI
+- React Router
+- TanStack Query
 
-**Use Lovable**
+## Core Libraries
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- `react-beautiful-dnd` for drag-and-drop widget reordering
+- `recharts` for charts and mini graph components
+- `sonner` for toast notifications
+- `lucide-react` for icons
+- `react-hook-form` and `zod` for form handling and validation utilities
 
-Changes made via Lovable will be committed automatically to this repo.
+## Features
 
-**Use your preferred IDE**
+- Reorderable dashboard widgets
+- Device management and productivity cards
+- Email and file activity charts
+- Storage usage donut chart
+- Active users map section
+- App activity and web activity panels
+- Top-right toast notifications
+- Responsive sidebar and top navigation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Project Structure
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```text
+src/
+  components/
+    dashboard/
+      DashboardLayout.tsx
+      Sidebar.tsx
+      TopBar.tsx
+      widgets/
+        ActiveUsersWidget.tsx
+        AppActivityWidget.tsx
+        CloudNetworkWidget.tsx
+        DeviceManagementWidget.tsx
+        EmailChartWidget.tsx
+        FileSharingWidget.tsx
+        OnlineUsersWidget.tsx
+        ProductivityReportWidget.tsx
+        WebActivityWidget.tsx
+        shared.tsx
+  pages/
+  lib/
+  hooks/
 ```
 
-**Edit a file directly in GitHub**
+## Requirements
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- Node.js
+- Yarn 1.x
 
-**Use GitHub Codespaces**
+## Getting Started
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Install dependencies:
 
-## What technologies are used for this project?
+```sh
+yarn install
+```
 
-This project is built with:
+Start the development server:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+yarn dev
+```
 
-## How can I deploy this project?
+Build for production:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```sh
+yarn build
+```
 
-## Can I connect a custom domain to my Lovable project?
+Preview the production build:
 
-Yes, you can!
+```sh
+yarn preview
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Scripts
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `yarn dev` starts the Vite development server
+- `yarn build` builds the app for production
+- `yarn build:dev` builds using development mode
+- `yarn preview` serves the production build locally
+- `yarn lint` runs ESLint
+- `yarn test` runs Vitest once
+- `yarn test:watch` runs Vitest in watch mode
+
+## UI Notes
+
+- Drag-and-drop is implemented with `react-beautiful-dnd`
+- Notifications use `sonner`
+- Shared widget helpers live in `src/components/dashboard/widgets/shared.tsx`
+- Tailwind utility classes drive most of the layout and styling
+
+## Development Notes
+
+- The app uses `BrowserRouter` for routing
+- Widget layouts are composed from reusable dashboard sections
+- Several widgets include custom SVG icon treatments and responsive sizing adjustments
+
+## License
+
+Shaarp Assessment project.

@@ -1,104 +1,129 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { DragDropContext, Draggable, Droppable, type DropResult } from "react-beautiful-dnd";
 import { AppWindow } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { FilterButton, SectionHeader, SectionShell, SortHeader } from "./shared";
+import { AppBrandIcon } from "./brandIcons";
 
 const initialApps = [
-  { id: "chrome", name: "Google Chrome", icon: "🌐", users: 34, hours: "3 hours 12 minutes", date: "2024-06-26 15:33:49" },
-  { id: "youtube", name: "YouTube", icon: "▶️", users: 12, hours: "2 hours 8 minutes", date: "2024-06-28 12:45:01" },
-  { id: "teams", name: "Microsoft Teams", icon: "💬", users: 18, hours: "6 hours 45 minutes", date: "2024 06 21 16:28:21" },
-  { id: "whatsapp", name: "WhatsApp", icon: "📱", users: 49, hours: "1 hour 30 minutes", date: "2024-06-28 15:33:49" },
-  { id: "opera", name: "Opera Mini", icon: "🔴", users: 3, hours: "9 hours 10 minutes", date: "2024 06 21 16:28:21" },
-  { id: "instagram", name: "Instagram", icon: "📷", users: 22, hours: "45 minutes", date: "2024-06-28 12:45:01" },
-];
+  ["Google Chrome", 34, "3 hours 12 minutes", "2024-06-26 15:33:49"],
+  ["YouTube", 12, "2 hours 8 minutes", "2024-05-26 12:45:41"],
+  ["Microsoft Teams", 16, "6 hours 45 minutes", "2024-05-21 16:28:21"],
+  ["WhatsApp", 49, "1 hour 30 minutes", "2024-06-26 15:33:49"],
+  ["Opera Mini", 3, "9 hours 10 minutes", "2024-05-21 16:28:21"],
+  ["Instagram", 22, "45 minutes", "2024-05-26 12:45:41"],
+] as const;
 
-const orgOptions = ["All Organization", "MSBM, Ottawa", "MSBM, Lagos"];
-const timeFilters = ["Month", "Week", "Day"];
-
-function reorder<T>(list: T[], s: number, e: number): T[] {
-  const r = Array.from(list);
-  const [removed] = r.splice(s, 1);
-  r.splice(e, 0, removed);
-  return r;
+function reorder<T>(list: T[], startIndex: number, endIndex: number) {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
+  return result;
 }
 
 export default function AppActivityWidget() {
-  const [orgFilter, setOrgFilter] = useState("All Organization");
-  const [timeFilter, setTimeFilter] = useState("Month");
-  const [apps, setApps] = useState(initialApps);
+  const [apps, setApps] = useState(Array.from(initialApps));
+  const tableRef = useRef<HTMLTableElement | null>(null);
+  const [organizationFilter, setOrganizationFilter] = useState("All Organization");
+  const [periodFilter, setPeriodFilter] = useState("Month");
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    setApps((prev) => reorder(prev, result.source.index, result.destination!.index));
+    setApps((current) => reorder(current, result.source.index, result.destination!.index));
+  };
+
+  const getDraggingRowStyle = (style: React.CSSProperties | undefined, isDragging: boolean) => {
+    if (!isDragging) return style;
+
+    const tableWidth = tableRef.current?.getBoundingClientRect().width;
+
+    return {
+      ...style,
+      display: "table",
+      tableLayout: "fixed",
+      width: tableWidth ? `${tableWidth}px` : "100%",
+    } satisfies React.CSSProperties;
   };
 
   return (
-    <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <AppWindow size={18} className="text-primary" />
-          <h2 className="font-semibold text-foreground">App Activity Report</h2>
-        </div>
-        <div className="flex gap-2">
-          <select
-            value={orgFilter}
-            onChange={(e) => setOrgFilter(e.target.value)}
-            className="text-xs bg-secondary rounded-lg px-3 py-1.5 text-muted-foreground border-none outline-none"
-          >
-            {orgOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-          <select
-            value={timeFilter}
-            onChange={(e) => setTimeFilter(e.target.value)}
-            className="text-xs bg-secondary rounded-lg px-3 py-1.5 text-muted-foreground border-none outline-none"
-          >
-            {timeFilters.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground mb-4">View your comprehensive organizations app report</p>
+    <SectionShell className="rounded-[18px] border border-[#ececee] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+      <SectionHeader
+        icon={<AppWindow size={14} />}
+        title="App Activity Report"
+        subtitle="View your comprehensive organizational app report"
+        actions={
+          <div className="flex items-center gap-2">
+            <FilterButton
+              label="All Organization"
+              value={organizationFilter}
+              options={["All Organization", "MSBM Ottawa", "MSBM Lagos", "MSBM London"]}
+              onChange={setOrganizationFilter}
+              className="h-[40px] w-[148px] rounded-[12px] bg-[#fafafa]"
+            />
+            <FilterButton
+              label="Month"
+              value={periodFilter}
+              options={["Month", "Week", "Day"]}
+              onChange={setPeriodFilter}
+              className="h-[40px] w-[96px] rounded-[12px] bg-[#fafafa]"
+            />
+          </div>
+        }
+        className="pb-1"
+      />
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">↕ Application</th>
-              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">↕ Total Users</th>
-              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">↕ Total Number of Hours</th>
-              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">↕ Date</th>
-            </tr>
-          </thead>
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="app-activity-rows">
+      <div className="mt-6 overflow-x-auto lg:overflow-x-visible">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <table ref={tableRef} className="w-full min-w-[560px] table-fixed border-separate border-spacing-y-[4px] text-left lg:min-w-0">
+            <colgroup>
+              <col className="w-[24%]" />
+              <col className="w-[15%]" />
+              <col className="w-[28%]" />
+              <col className="w-[33%]" />
+            </colgroup>
+            <thead>
+              <tr className="text-[10px] font-semibold text-[#454a53]">
+                <th className="rounded-tl-[10px] bg-[#ddddde] px-3 py-3"><SortHeader label="Application" /></th>
+                <th className="bg-[#ddddde] px-3 py-3"><SortHeader label="Total Users" /></th>
+                <th className="bg-[#ddddde] px-3 py-3"><SortHeader label="Total Number of Hours" /></th>
+                <th className="rounded-tr-[10px] bg-[#ddddde] px-3 py-3"><SortHeader label="Date" /></th>
+              </tr>
+            </thead>
+            <Droppable droppableId="app-rows">
               {(provided) => (
                 <tbody ref={provided.innerRef} {...provided.droppableProps}>
-                  {apps.map((app, i) => (
-                    <Draggable key={app.id} draggableId={app.id} index={i}>
-                      {(provided, snapshot) => (
+                  {apps.map((app, index) => (
+                    <Draggable key={`${app[0]}-${index}`} draggableId={`app-row-${index}`} index={index} disableInteractiveElementBlocking>
+                      {(dragProvided, snapshot) => (
                         <tr
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className={`border-b border-border last:border-none transition-all cursor-grab active:cursor-grabbing ${
-                            snapshot.isDragging ? "bg-accent shadow-md" : "hover:bg-secondary/50"
-                          }`}
+                          ref={dragProvided.innerRef}
+                          {...dragProvided.draggableProps}
+                          {...dragProvided.dragHandleProps}
+                          className={`drag-row ${snapshot.isDragging ? "drag-row-dragging" : ""} text-[11px] text-[#52565f]`}
+                          style={getDraggingRowStyle(dragProvided.draggableProps.style, snapshot.isDragging)}
                         >
-                          <td className="px-3 py-2.5 text-xs font-medium text-foreground flex items-center gap-2">
-                            <span>{app.icon}</span>{app.name}
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} rounded-l-[10px] px-3 py-[10px]`}>
+                            <span className="inline-flex max-w-full items-center gap-2 truncate font-medium text-[#31343a]">
+                              <AppBrandIcon name={app[0]} className="h-[18px] w-[18px]" iconClassName="h-[16px] w-[16px]" />
+                              <span className="truncate">{app[0]}</span>
+                            </span>
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{app.users}</td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{app.hours}</td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{app.date}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px]`}>{app[1]}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} px-3 py-[10px] truncate`}>{app[2]}</td>
+                          <td className={`${index % 2 === 0 ? "" : "bg-[#ededee]"} rounded-r-[10px] px-3 py-[10px] truncate`}>{app[3]}</td>
                         </tr>
                       )}
                     </Draggable>
                   ))}
                   {provided.placeholder}
+                  <tr aria-hidden="true">
+                    <td colSpan={4} className="h-3 p-0"></td>
+                  </tr>
                 </tbody>
               )}
             </Droppable>
-          </DragDropContext>
-        </table>
+          </table>
+        </DragDropContext>
       </div>
-    </div>
+    </SectionShell>
   );
 }
