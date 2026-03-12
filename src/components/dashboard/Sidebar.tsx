@@ -1,36 +1,6 @@
-import {
-  BarChart3,
-  Building2,
-  CreditCard,
-  HardDrive,
-  LayoutDashboard,
-  Monitor,
-  Settings,
-  TrendingUp,
-  UserCircle,
-  Users,
-  HeadphonesIcon,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "lucide-react";
-
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
-  { icon: Building2, label: "Organization & Reg." },
-  { icon: BarChart3, label: "Reporting" },
-  { icon: CreditCard, label: "Billing" },
-  { icon: UserCircle, label: "Account" },
-  { icon: HardDrive, label: "Storage" },
-  { icon: Settings, label: "Settings" },
-  { icon: Monitor, label: "Device Management" },
-  { icon: TrendingUp, label: "Productivity Report" },
-];
-
-const bottomItems = [
-  { icon: Users, label: "User Panel" },
-  { icon: HeadphonesIcon, label: "Support" },
-];
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { bottomItems, menuItems } from "./navigation";
 
 export default function Sidebar({
   open,
@@ -73,35 +43,41 @@ export default function Sidebar({
 
         <nav className="space-y-1">
           {menuItems.map((item) => (
-            <button
+            <NavLink
               key={item.label}
+              to={item.path}
               title={collapsed ? item.label : undefined}
-              className={`flex w-full items-center rounded-[10px] py-[9px] text-left text-[11px] font-medium transition-colors ${
-                collapsed ? "justify-center px-0" : "gap-2.5 px-3"
-              } ${
-                item.active
-                  ? "bg-[#eef2ff] text-[#5468ff]"
-                  : "text-[#70757f] hover:bg-[#f7f7f8] hover:text-[#2f3137]"
-              }`}
+              className={({ isActive }) =>
+                `flex w-full items-center rounded-[10px] py-[9px] text-left text-[11px] font-medium transition-colors ${
+                  collapsed ? "justify-center px-0" : "gap-2.5 px-3"
+                } ${
+                  isActive ? "bg-[#eef2ff] text-[#5468ff]" : "text-[#70757f] hover:bg-[#f7f7f8] hover:text-[#2f3137]"
+                }`
+              }
             >
               <item.icon size={13} strokeWidth={2.1} />
               {collapsed ? null : <span className="truncate">{item.label}</span>}
-            </button>
+            </NavLink>
           ))}
         </nav>
 
         <div className="mt-auto space-y-1">
           {bottomItems.map((item) => (
-            <button
+            <NavLink
               key={item.label}
+              to={item.path}
               title={collapsed ? item.label : undefined}
-              className={`flex w-full items-center rounded-[10px] py-[9px] text-left text-[11px] font-medium text-[#70757f] transition-colors hover:bg-[#f7f7f8] hover:text-[#2f3137] ${
-                collapsed ? "justify-center px-0" : "gap-2.5 px-3"
-              }`}
+              className={({ isActive }) =>
+                `flex w-full items-center rounded-[10px] py-[9px] text-left text-[11px] font-medium transition-colors ${
+                  collapsed ? "justify-center px-0" : "gap-2.5 px-3"
+                } ${
+                  isActive ? "bg-[#eef2ff] text-[#5468ff]" : "text-[#70757f] hover:bg-[#f7f7f8] hover:text-[#2f3137]"
+                }`
+              }
             >
               <item.icon size={13} strokeWidth={2.1} />
               {collapsed ? null : <span className="truncate">{item.label}</span>}
-            </button>
+            </NavLink>
           ))}
 
           {collapsed ? (
