@@ -81,7 +81,7 @@ export function SectionHeader({
               {icon}
             </div>
           ) : null}
-          <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-[#2f3137]">{title}</h2>
+          <h2 className="text-[16px] font-semibold tracking-[-0.02em] text-[#2f3137]">{title}</h2>
         </div>
         {subtitle ? <p className="mt-1 text-[9.5px] text-[#8b8f99]">{subtitle}</p> : null}
       </div>

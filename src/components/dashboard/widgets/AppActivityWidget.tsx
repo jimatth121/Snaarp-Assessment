@@ -75,10 +75,10 @@ export default function AppActivityWidget() {
         <DragDropContext onDragEnd={onDragEnd}>
           <table ref={tableRef} className="w-full min-w-[560px] table-fixed border-separate border-spacing-y-[4px] text-left lg:min-w-0">
             <colgroup>
-              <col className="w-[24%]" />
-              <col className="w-[15%]" />
-              <col className="w-[28%]" />
-              <col className="w-[33%]" />
+              <col className="w-[31%]" />
+              <col className="w-[18%]" />
+              <col className="w-[25%]" />
+              <col className="w-[26%]" />
             </colgroup>
             <thead>
               <tr className="text-[10px] font-semibold text-[#454a53]">
